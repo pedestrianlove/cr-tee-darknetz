@@ -750,8 +750,6 @@ void predict_classifier(char *datacfg, char *cfgfile, char *weightfile, char *fi
 
                 top_k(predictions, net->outputs, top, indexes);
 
-                free(net_output_back);
-
                 struct rusage usage;
                 struct timeval startu, endu, starts, ends;
 
@@ -796,8 +794,6 @@ void predict_classifier(char *datacfg, char *cfgfile, char *weightfile, char *fi
                         printf("%5.2f%%: %s\n", predictions[index]*100, names[index]);
                 }
 
-
-
                 getrusage(RUSAGE_SELF, &usage);
                 endu = usage.ru_utime;
                 ends = usage.ru_stime;
@@ -808,8 +804,10 @@ void predict_classifier(char *datacfg, char *cfgfile, char *weightfile, char *fi
                 fprintf(output_file, "kernel CPU start: %lu.%06u; end: %lu.%06u\n", starts.tv_sec, starts.tv_usec, ends.tv_sec, ends.tv_usec);
                 fprintf(output_file, "Max: %ld  kilobytes\n", usage.ru_maxrss);
                 getMemory(output_file);
-
+                
                 fclose(output_file);
+
+                free(net_output_back);
 
                 if(r.data != im.data) free_image(r);
                 free_image(im);
@@ -1266,7 +1264,29 @@ void demo_classifier(char *datacfg, char *cfgfile, char *weightfile, int cam_ind
 #endif
 }
 
+void convert_weights_to_TA(char* datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear)
+{
+        int i;
+        char *base = basecfg(cfgfile);
+        network **nets = calloc(ngpus, sizeof(network*));
 
+        int seed = rand();
+        // load network into GPU(s)
+        for(i = 0; i < ngpus; ++i) {
+                srand(seed);
+#ifdef GPU
+        cuda_set_device(gpus[i]);
+#endif
+        nets[i] = load_network(cfgfile, weightfile, clear);
+        }
+
+        network *net = nets[0];
+        char buff[256];
+        sprintf(buff, "models/mnist/%s_ta.weights", base);
+        save_weights(net, buff);
+        free_network(net);
+        free(base);
+}
 
 void run_classifier(int argc, char **argv)
 {
@@ -1329,4 +1349,5 @@ void run_classifier(int argc, char **argv)
         else if(0==strcmp(argv[2], "valid10")) validate_classifier_10(data, cfg, weights);
         else if(0==strcmp(argv[2], "validcrop")) validate_classifier_crop(data, cfg, weights);
         else if(0==strcmp(argv[2], "validfull")) validate_classifier_full(data, cfg, weights);
+        else if(0==strcmp(argv[2], "move")) convert_weights_to_TA(data, cfg, weights, gpus, ngpus, clear);
 }

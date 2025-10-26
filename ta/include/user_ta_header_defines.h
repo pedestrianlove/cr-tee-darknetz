@@ -7,6 +7,7 @@
 
 #define TA_UUID				TA_DARKNETP_UUID
 
+#define CFG_TA_FLOAT_SUPPORT 1
 /*
  * TA properties: multi-instance TA, no specific attribute
  * TA_FLAG_EXEC_DDR is meaningless but mandated.
