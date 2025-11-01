@@ -1264,30 +1264,6 @@ void demo_classifier(char *datacfg, char *cfgfile, char *weightfile, int cam_ind
 #endif
 }
 
-void convert_weights_to_TA(char* datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear)
-{
-        int i;
-        char *base = basecfg(cfgfile);
-        network **nets = calloc(ngpus, sizeof(network*));
-
-        int seed = rand();
-        // load network into GPU(s)
-        for(i = 0; i < ngpus; ++i) {
-                srand(seed);
-#ifdef GPU
-        cuda_set_device(gpus[i]);
-#endif
-        nets[i] = load_network(cfgfile, weightfile, clear);
-        }
-
-        network *net = nets[0];
-        char buff[256];
-        sprintf(buff, "models/mnist/%s_ta.weights", base);
-        save_weights(net, buff);
-        free_network(net);
-        free(base);
-}
-
 void run_classifier(int argc, char **argv)
 {
         if(argc < 4) {
@@ -1349,5 +1325,4 @@ void run_classifier(int argc, char **argv)
         else if(0==strcmp(argv[2], "valid10")) validate_classifier_10(data, cfg, weights);
         else if(0==strcmp(argv[2], "validcrop")) validate_classifier_crop(data, cfg, weights);
         else if(0==strcmp(argv[2], "validfull")) validate_classifier_full(data, cfg, weights);
-        else if(0==strcmp(argv[2], "move")) convert_weights_to_TA(data, cfg, weights, gpus, ngpus, clear);
 }
